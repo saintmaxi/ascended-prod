@@ -5,6 +5,7 @@
  *   var Webflow = Webflow || [];
  *   Webflow.push(readyFunction);
  */
+console.log('Hosted by Netlify')
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
