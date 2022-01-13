@@ -113,7 +113,9 @@ const checkMintingLive = async() => {
         $("#mint-closed").removeClass("hidden");
     }
     else {
-        $("#whitelisted").html('');
+        if (publicLive && whitelistLive) {
+            $("#whitelisted").html('');
+        }
         $("#mint-tools").removeClass("hidden");
         $("#mint-closed").addClass("hidden");
     }
