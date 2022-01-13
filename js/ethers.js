@@ -181,11 +181,15 @@ const mint = async() => {
         if ((error.message).includes("Amount exceeds available for whitelist!")) {
             await displayErrorMessage(`Error: Max 4 mints for WL!`)
         }
+        else if ((error.message).includes("You are not Whitelisted")) {
+            await displayErrorMessage(`Error: You are not whitelisted!`)
+        }
         else if ((error.message).includes("insufficient funds")) {
             await displayErrorMessage(`Error: Insufficient ETH!`)
         }
         else {
-            await displayErrorMessage("An error occurred. See console for details...")
+            await displayErrorMessage("An error occurred. See console and window alert for details...")
+            window.alert(error);
             console.log(error);
         }
     }
