@@ -113,9 +113,7 @@ const checkMintingLive = async() => {
         $("#mint-closed").removeClass("hidden");
     }
     else {
-        if (!whitelistLive && publicLive) {
-            $("#whitelisted").html('');
-        }
+        $("#whitelisted").html('');
         $("#mint-tools").removeClass("hidden");
         $("#mint-closed").addClass("hidden");
     }
@@ -298,8 +296,8 @@ ethereum.on("accountsChanged", async(accounts_)=>{
 
 window.onload = async()=>{
     await updateInfo();
-    await checkMintingLive();
     await checkWhitelistStatus();
+    await checkMintingLive();
     await updateMintInfo();
 };
 
