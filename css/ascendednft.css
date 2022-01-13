@@ -67,6 +67,70 @@ li {
   font-weight: 400;
 }
 
+.hidden {
+  display: none;
+}
+
+#mint-header {
+  font-size: calc(25px + 2vw) !important;
+  line-height: calc(25px + 2vw) !important;
+}
+
+.mint-info {
+  font-size: calc(25px + 1vw);
+  line-height: calc(25px + 1vw);
+}
+
+#max-button, #mint-button {
+  font-size: calc(25px + .5vw);
+  padding: 1vw;
+  width:40%;
+}
+
+#max-button {
+  margin: 1.5vw;
+  padding: .5vw;
+}
+
+.increment-button {
+  width: 20%;
+  font-size: calc(25px + 4vw) !important;
+  line-height: calc(25px + 4vw) !important;
+  background-color: transparent;
+}
+
+#number-to-mint {
+  font-size: calc(25px + 3.5vw) !important;
+  line-height: calc(25px + 3.5vw) !important;
+}
+
+#mint-prompt {
+  width: 100%;
+  text-align: center;
+}
+
+#mint-tools {
+  width: 100%;
+}
+
+.animate-pop {
+  animation-duration: 0.5s;
+  animation-name: animate-pop;
+  animation-timing-function: cubic-bezier(.26, .53, .74, 1.48);
+}
+
+@keyframes animate-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5, 0.5);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1, 1);
+  }
+}
+
 .hero-section {
   position: relative;
   z-index: 2;
@@ -5540,6 +5604,10 @@ li {
   opacity: 0.75;
 }
 
+.image-29 {
+  margin-right: 4px;
+}
+
 .grid-11 {
   grid-column-gap: 60px;
   grid-row-gap: 60px;
@@ -5659,11 +5727,12 @@ li {
   opacity: 1;
 }
 
-.image-29 {
-  margin-right: 4px;
-}
-
 @media screen and (max-width: 991px) {
+
+  #twitter {
+    margin-right: 3px;
+  }
+
   h1 {
     font-size: 55px;
     line-height: 65px;
@@ -6536,6 +6605,52 @@ li {
 }
 
 @media screen and (max-width: 767px) {
+
+
+  #mint-header {
+    font-size: calc(25px + 2vw) !important;
+    line-height: calc(25px + 2vw) !important;
+  }
+  
+  .mint-info {
+    font-size: calc(25px + 1vw);
+    line-height: calc(25px + 1vw);
+    margin-bottom: 0;
+  }
+  
+  #max-button, #mint-button {
+    font-size: calc(25px + .5vw);
+    padding: 2.5vw;
+  }
+  
+  #max-button {
+    margin: 1.5vw;
+    margin-top: 4vw;
+    padding: .5vw;
+  }
+  
+  .increment-button {
+    width: initial;
+    font-size: calc(20px + 3.5vw) !important;
+    line-height: calc(25px + 3.5vw) !important;
+    background-color: transparent;
+  }
+  
+  #number-to-mint {
+    font-size: calc(25px + 3.5vw) !important;
+    line-height: calc(25px + 3.5vw) !important;
+  }
+  
+  #mint-prompt {
+    width: 100%;
+    text-align: center;
+  }
+  
+  #mint-tools {
+    width: 100%;
+  }
+
+  /*   Boilerplate    */
   h1 {
     font-size: 40px;
     line-height: 50px;
@@ -7964,10 +8079,6 @@ li {
 
   .history-item-line {
     width: 20px;
-  }
-
-  .image-29 {
-    margin-right: 12px;
   }
 }
 
