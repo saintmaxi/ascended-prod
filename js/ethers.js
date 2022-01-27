@@ -200,7 +200,7 @@ const updateMintInfo = async() => {
     let minted = Number(await ascended.totalSupply());
     $("#num-minted").text(minted);
     if (minted == 8888) {
-        $("#cost-div").html(`SOLD OUT<br><br>AVAILABLE ON <a href="https://opensea.io/collection/ascended-nft-official" target="_blank" class="w-inline-block">OPENSEA</a>`);
+        $("#cost-div").html(`SOLD OUT<br><br>AVAILABLE ON <a href="https://opensea.io/collection/ascended-nft-official" target="_blank" class="w-inline-block">OPENSEA</a> & <a href="https://looksrare.org/collections/0x496299d8497A02b01f5Bc355298b0a831f06c522" target="_blank" class="w-inline-block">LOOKSRARE</a>`);
         $("#mint-button").remove();
         $("#quantity-controls").remove();
     }
