@@ -16,7 +16,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const revealMintPrompt = async() => {
+const revealAuraLookup = async() => {
     try {
         await getAddress();
         $("#info-block").addClass("hidden");
@@ -27,3 +27,10 @@ const revealMintPrompt = async() => {
         connect();
     }
 }
+
+function clearPendingTxs() {
+    localStorage.removeItem("AuraPendingTxs");
+    localStorage.removeItem("AscendedPendingTxs");
+    pendingTransactions.clear();
+    location.reload();
+};

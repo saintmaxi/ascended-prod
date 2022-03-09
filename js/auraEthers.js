@@ -14,9 +14,16 @@ const auraAbi = () => {
 
 const etherscanBase = `https://etherscan.io/tx/`;
 const correctChain = 1;
+const baseImageURI = "https://api.nonfungiblecdn.com/ascendednft/images/";
 const auraImgURL = "https://github.com/saintmaxi/ascended/blob/main/images/aura_symbol.png?raw=true";
 
 /*********************************END CONFIG************************************/
+
+if (window.ethereum == undefined) {
+    displayErrorMessage('Use a web3 enabled browser to claim $AURA!');
+    $("#available-ascended-images").empty();
+    $("#available-ascended-images").append("<br><h3>No explorers available...</h3>");
+}
 
 const provider = new ethers.providers.Web3Provider(window.ethereum,"any");
 const signer = provider.getSigner();
@@ -25,7 +32,6 @@ const aura = new ethers.Contract(auraAddress, auraAbi(), signer);
 
 const connect = async()=>{
     await provider.send("eth_requestAccounts", []);
-    await revealMintPrompt();
 };
 
 const getAddress = async()=>{
@@ -44,31 +50,20 @@ const getChainId = async()=>{
     return await signer.getChainId()
 };
 
-
-const getAuraEarnedByID = async() => {
-    try {
-        let input = $("#token-id").val();
-        if (!input) {
-            $("#pending-aura").text("Invalid ID");
-        }
-        else {
-            let id = Number(input);
-            if (id < 0 || id > (await ascended.totalSupply() -1)) {
-                $("#pending-aura").text("Invalid ID");
-            }
-            else {
-                let pendingAura = Number(formatEther(await aura.claimable(id))).toFixed(2);
-                $("#pending-aura").html(`UNCLAIMED: ${pendingAura} <img src="${auraImgURL}" class="aura-icon">`);
-            }
-        }
-        $("#spacer").remove();
-        $("#pending-aura-div").removeClass("hidden");
-    }
-    catch {
-        console.log('Metamask throws extra error. Token reward lookup was successful.')
-        return 0;
-    }
-};
+const importAuraToWallet = async() => {
+    ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: auraAddress,
+            symbol: 'AURA',
+            decimals: 18,
+            image: auraImgURL,
+          },
+        },
+      });
+}
 
 const updateCurrentChain = async() => {
     if ((await getChainId()) !== correctChain) {
@@ -80,12 +75,201 @@ const updateCurrentChain = async() => {
     }
 }
 
-provider.on("network", async(newNetwork, oldNetwork) => {
-        if (oldNetwork) {
-            $("#refresh-notification").remove();
-            await updateCurrentChain();
+// AURA Functions
+
+const getAscendedEnum = async()=>{
+    let userAddress = await getAddress();
+    let totalAscended = await ascended.balanceOf(userAddress);
+    return totalAscended;
+};
+
+const getAscendedOwned = async() => {
+    let userAddress = await getAddress();
+    let totalAscended = await ascended.balanceOf(userAddress);
+    let ownedAscended = [];
+    for (let i = 0; i < totalAscended; i++) {
+        let id = Number(await ascended.tokenOfOwnerByIndex(userAddress, i));
+        ownedAscended.push(id);
+    }
+    return [...ownedAscended].sort((a, b) => a - b);
+}
+
+const getAuraBalance = async()=>{
+    let userAddress = await getAddress();
+    let auraBalance = await aura.balanceOf(userAddress);
+    $("#your-aura").html(`${(Number(formatEther(auraBalance))).toFixed(2)}`);
+};
+
+const getPendingAuraBalance = async()=>{ // need to add up by total of each token
+    let userAddress = await getAddress();
+    let totalAscended = await getAscendedEnum();
+    let pendingAura = 0;
+    for (let i = 0; i < totalAscended; i++) {
+        let id = Number(await ascended.tokenOfOwnerByIndex(userAddress, i));
+        pendingAura += Number(formatEther(await aura.claimable(id))); //get aura owed to token
+    }
+    $("#claimable-aura").html(`${pendingAura.toFixed(2)}`);
+};
+
+const claimByIds = async()=>{
+    if (selectedForUnstaking.size == 0) {
+        displayErrorMessage("Select at least 1 Ascended to claim!")
+    }
+    else {
+        const ascendedArray = Array.from(selectedForUnstaking);
+        await aura.claimMany(ascendedArray).then( async(tx_) => {
+            selectedForUnstaking = new Set();
+            $("#selected-for-unstaking").text("NONE");
+            $(".active").removeClass("active");
+            await waitForTransaction(tx_);
+        }); 
+    }
+};
+
+const claimAll = async() => {
+    const numAscended = await getAscendedEnum();
+    if (numAscended == 0) {
+        displayErrorMessage("No Ascended to claim for!")
+    }
+    else {
+        const ascendedArray = await getAscendedOwned();
+        await aura.claimMany(ascendedArray).then( async(tx_) => {
+            selectedForUnstaking = new Set();
+            $("#selected-for-unstaking").text("NONE");
+            $(".active").removeClass("active");
+            await waitForTransaction(tx_);
+        }); 
+    }
+};
+
+// Staking functions
+
+var currentlyStaked = [];
+var imagesLoaded = false;
+
+const getAscendedImages = async()=>{
+    $("#available-ascended-images").empty();
+    $("#available-ascended-images").append(`<br><h3>Loading<span class="one">.</span><span class="two">.</span><span class="three">.</span></h3>`);
+
+    const yourAscendedCount = await getAscendedEnum();
+    if (yourAscendedCount == 0) {
+        $("#available-ascended-images").empty();
+        $("#available-ascended-images").append("<br><h3>No Ascended available...</h3>");
+    }
+    else {
+        const yourAscended = await getAscendedOwned();
+        currentlyStaked = yourAscended;
+        let batchFakeJSX = "";
+        for (let i = 0; i < yourAscended.length; i++) {
+            let ascendedID = yourAscended[i];
+            let active= "";
+            if (selectedForUnstaking.has(Number(ascendedID))) {
+                active = "active";
+            }
+            let auraEarned = Number(formatEther(await aura.claimable(ascendedID))).toFixed(2);
+
+            batchFakeJSX += `<div id="ascended-${ascendedID}" class="your-ascended ${active}" onclick="selectForUnstaking(${ascendedID})"><img src="${baseImageURI}${ascendedID}"><p class="ascended-id">#${ascendedID}</p><p class="aura-earned"><span id="aura-earned-${ascendedID}">${auraEarned}</span><img src="${auraImgURL}" class="aura-icon"></p></div>`        
+            
+        };
+        $("#available-ascended-images").empty();
+        $("#available-ascended-images").append(batchFakeJSX);
+    }
+    imagesLoaded = true;
+}
+
+const getAuraEarnedByID = async(id) => {
+    try {
+        return Number(formatEther(await aura.claimable(id))).toFixed(2); //replace w aura version
+    }
+    catch {
+        console.log('Metamask throws extra error. Token reward lookup was successful.')
+        return 0;
+    }
+};
+
+const updateAuraEarned = async() => {
+    let totalEarned = 0;
+    for (let i = 0; i < currentlyStaked.length; i++) {
+        let ascendedID = Number(currentlyStaked[i]);
+        let auraEarnedByID = await getAuraEarnedByID(ascendedID);
+        $(`#aura-earned-${ascendedID}`).html(`${auraEarnedByID}`);
+        if (selectedForUnstaking.has(ascendedID)) {
+            totalEarned += Number(auraEarnedByID);
         }
-    });
+    };
+    $("#aura-to-claim").html(`$<img src="${auraImgURL}" class="aura-icon"> to Claim: ${totalEarned.toFixed(2)}`);
+};
+
+const updateClaimingInfo = async()=>{
+    if ((await getChainId()) === correctChain) {
+        const loadingDiv = `<div class="loading-div" id="refresh-notification">REFRESHING <br>CLAIMING INTERFACE<span class="one">.</span><span class="two">.</span><span class="three">.</span>​</div><br>`;
+        $("#pending-transactions").append(loadingDiv);
+        await getAuraBalance();
+        let ascendedNum = await getAscendedEnum();
+        if (ascendedNum == 0) {
+            $("#claimable-aura").text("0.0");
+        }
+        else {
+            await getPendingAuraBalance();
+        }
+        $("#your-ascended-num").html(`${ascendedNum}`);
+        $("#earn-rate").html(100 * ascendedNum);
+        if (!imagesLoaded) {
+            await getAscendedImages();
+        }
+        $("#error-popup").remove();
+        $("#refresh-notification").remove();
+    } 
+    else {
+        $("#wallet").text(`Wrong Network!`);
+        $("#available-ascended-images").empty();
+        $("#available-ascended-images").text("Error: Wrong Network");
+        $("#your-aura").html(`0.0`);
+        $("#claimable-aura").html(`0.0`);
+        $("#earn-rate").html("0.0");
+        displayErrorMessage("Error: Wrong Network", false);
+    }
+};
+
+
+// General functions
+
+provider.on("network", async(newNetwork, oldNetwork) => {
+    if (oldNetwork) {
+        $("#refresh-notification").remove();
+        await updateCurrentChain();
+        await updateClaimingInfo();
+    }
+});
+
+//selection helpers
+
+var selectedForUnstaking = new Set();
+
+async function selectForUnstaking(id) {
+    if (!selectedForUnstaking.has(id)) {
+        selectedForUnstaking.add(id);
+        $(`#ascended-${id}`).addClass("active");
+    }
+    else {
+        selectedForUnstaking.delete(id);
+        $(`#ascended-${id}`).removeClass("active");
+    }
+    if (selectedForUnstaking.size == 0) {
+        $("#selected-for-unstaking").text("NONE");
+        $("#aura-to-claim").html(`$<img src="${auraImgURL}" class="aura-icon"> to Claim: 0`);
+    }
+    else {
+        let selectedForUnstakingArray = Array.from(selectedForUnstaking).sort((a, b) => a - b);
+        let auraToClaim = 0;
+        for (let i = 0; i < selectedForUnstakingArray.length; i++) {
+            auraToClaim += Number(await getAuraEarnedByID(selectedForUnstakingArray[i]));
+        }
+        $("#aura-to-claim").html(`$<img src="${auraImgURL}" class="aura-icon"> to Claim: ${auraToClaim.toFixed(2)}`);
+        let selectedString = `${selectedForUnstakingArray.join(', ')}`;
+        $("#selected-for-unstaking").text(selectedString);
+    }
+}
 
 // Processing tx returns
 const waitForTransaction = async(tx_) => {
@@ -96,7 +280,7 @@ const waitForTransaction = async(tx_) => {
 };
 
 // Resuming UI display, refreshing market for pending txs across pages
-var pendingTransactions = localStorage.getItem("AscendedPendingTxs");
+var pendingTransactions = localStorage.getItem("AuraPendingTxs");
 
 if (!pendingTransactions) {
     pendingTransactions = new Set();
@@ -109,11 +293,11 @@ else {
     for (let i =0; i < pendingTxArray.length; i++) {
         waitForTransaction(pendingTxArray[i]);
     }
-    localStorage.removeItem("AscendedPendingTxs");
+    localStorage.removeItem("AuraPendingTxs");
 }
 
 function cachePendingTransactions() {
-    localStorage.setItem("AscendedPendingTxs", JSON.stringify(Array.from(pendingTransactions)));
+    localStorage.setItem("AuraPendingTxs", JSON.stringify(Array.from(pendingTransactions)));
 }
 
 function startLoading(tx) {
@@ -139,15 +323,21 @@ async function endLoading(tx, txStatus) {
     await sleep(7000);
     $(`#etherscan-link-${txHash}`).remove();
     pendingTransactions.delete(tx);
+    if (pendingTransactions.size == 0) {
+        await updateClaimingInfo();
+    }
 }
 
 setInterval(async()=>{
     await updateInfo();
+    await updateAuraEarned();
+    await getPendingAuraBalance();
 }, 5000)
 
 const updateInfo = async () => {
     let userAddress = await getAddress();
     $("#account").text(`${userAddress.substr(0,9)}..`);
+    $("#mobile-account").text(`${userAddress.substr(0,9)}...`);
 };
 
 ethereum.on("accountsChanged", async(accounts_)=>{
@@ -156,6 +346,9 @@ ethereum.on("accountsChanged", async(accounts_)=>{
 
 window.onload = async()=>{
     await updateInfo();
+    if (pendingTransactions.size < 1) {
+        await updateClaimingInfo();
+    }
 };
 
 window.onunload = async()=>{
